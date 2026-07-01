@@ -1,77 +1,107 @@
 // Medical FAQ Knowledge Base and TF-IDF Similarity Search Engine
 // Mimics FAISS Vector Store retrieval in JavaScript
 
+// Mock Users Database
+const MOCK_USERS = [
+  { id: 1, name: "Akshay", password: "Messi", role: "patient" },
+  { id: 2, name: "sooraj", password: "mister11", role: "doctor" },
+  { id: 3, name: "juwel", password: "mister7", role: "doctor" },
+  { id: 4, name: "charles babbage", password: "computer", role: "developer" }
+];
+
+// Mock Appointments Database
+const INITIAL_APPOINTMENTS = [
+  {
+    id: 101,
+    patientName: "Akshay",
+    doctorName: "sooraj",
+    date: "2026-07-05",
+    time: "10:30 AM",
+    reason: "Routine cardiovascular checkup and blood pressure management.",
+    status: "Confirmed"
+  },
+  {
+    id: 102,
+    patientName: "Akshay",
+    doctorName: "juwel",
+    date: "2026-07-12",
+    time: "02:00 PM",
+    reason: "Follow-up consultation on pediatric care and immunization schedule.",
+    status: "Confirmed"
+  }
+];
+
 const MEDICAL_FAQ_DATABASE = [
   {
     id: 1,
-    category: "Preparation",
-    title: "Fasting Blood Test Guidelines",
-    content: "For fasting blood tests (such as lipid panels, glucose tests, or basic metabolic panels), do not eat or drink anything except water for 8 to 12 hours before your appointment. Avoid chewing gum, smoking, and strenuous exercise. Continue taking your prescription medications with water unless specifically instructed otherwise by your doctor.",
-    source: "Clinical Prep Guide 2026",
-    page: 5,
+    category: "Diseases & Conditions",
+    title: "Hypertension (High Blood Pressure)",
+    content: "Hypertension is a common condition in which the long-term force of the blood against your artery walls is high enough that it may eventually cause health problems, such as heart disease. Symptoms are rare, making regular checkups crucial. Management involves a low-salt diet, regular exercise, limiting alcohol, and medications like beta-blockers or ACE inhibitors.",
+    source: "Mayo Clinic Cardiology",
+    page: 14,
     vector: [0.15, -0.42, 0.88, 0.03, -0.31, 0.62, 0.12, -0.19]
   },
   {
     id: 2,
-    category: "Appointments",
-    title: "Pediatric Appointment Booking & Requirements",
-    content: "To schedule an appointment for children under 18 years of age, select the 'Pediatric Care' department in the online patient portal. A parent or legal guardian must accompany the child to all appointments. Please bring the child's immunization record, insurance card, and the parent/guardian's photo identification.",
-    source: "Clinic Policy Handbook",
-    page: 12,
+    category: "Diseases & Conditions",
+    title: "Type 2 Diabetes Mellitus",
+    content: "Type 2 diabetes is an impairment in the way the body regulates and uses sugar (glucose) as a fuel. This long-term (chronic) condition results in too much sugar circulating in the bloodstream. Symptoms include increased thirst, frequent urination, hunger, fatigue, and blurred vision. Treatments include healthy eating, regular exercise, weight loss, and insulin therapy or glucose-lowering drugs.",
+    source: "Mayo Clinic Endocrinology",
+    page: 28,
     vector: [-0.67, 0.11, 0.35, -0.82, 0.44, 0.19, -0.51, 0.72]
   },
   {
     id: 3,
-    category: "Policy",
-    title: "Cancellation & Rescheduling Rules",
-    content: "Appointments must be cancelled or rescheduled at least 24 hours prior to the scheduled time. Cancellations made less than 24 hours in advance, or missed appointments (no-shows), will incur a $50 late fee. This fee is not covered by insurance and must be paid before booking your next appointment.",
-    source: "Billing & Admin Manual",
-    page: 8,
+    category: "Symptoms",
+    title: "High Fever & Influenza (Flu) Symptoms",
+    content: "Influenza is a viral infection that attacks your respiratory system. Symptoms include a high fever (typically above 100.4°F / 38°C), aching muscles, chills, sweats, headache, dry cough, fatigue, and nasal congestion. Treatment includes rest, fluid intake, and over-the-counter pain relievers. Seek immediate emergency care for breathing difficulties or temperatures exceeding 103°F (39.4°C).",
+    source: "Mayo Clinic Infectious Diseases",
+    page: 9,
     vector: [0.45, 0.76, -0.12, 0.33, -0.91, -0.22, 0.65, 0.04]
   },
   {
     id: 4,
-    category: "Triage",
-    title: "High Fever Self-Care and Emergency Triage",
-    content: "For adults, a fever is defined as a temperature of 100.4°F (38°C) or higher. Manage a mild fever with rest, hydration, and over-the-counter fever reducers like acetaminophen or ibuprofen. Seek immediate emergency medical care if the fever exceeds 103°F (39.4°C), lasts more than 3 days, or is accompanied by chest pain, difficulty breathing, a stiff neck, or severe headache.",
-    source: "Urgent Care Triage Protocol",
-    page: 19,
+    category: "Symptoms",
+    title: "Migraine Headaches",
+    content: "A migraine is a headache that can cause severe throbbing pain or a pulsing sensation, usually on one side of the head. It's often accompanied by nausea, vomiting, and extreme sensitivity to light and sound. Migraine attacks can last for hours to days, and the pain can be so severe that it interferes with your daily activities. Preventive and pain-relieving medications help manage attacks.",
+    source: "Mayo Clinic Neurology",
+    page: 22,
     vector: [0.08, -0.89, 0.22, -0.14, 0.53, 0.77, -0.39, -0.61]
   },
   {
     id: 5,
-    category: "Billing",
-    title: "Insurance Coverage and Co-pays",
-    content: "Our clinic accepts major insurance providers including Blue Cross Blue Shield, Aetna, Cigna, UnitedHealthcare, and Medicare. Patients are responsible for paying any co-pay or unmet deductibles at the time of check-in. We recommend calling your insurance provider before your visit to verify coverage and co-pay requirements for 'specialist clinic' appointments.",
-    source: "Billing & Admin Manual",
-    page: 3,
+    category: "Tests & Procedures",
+    title: "Abdominal Ultrasound Prep Guidelines",
+    content: "An abdominal ultrasound uses sound waves to produce pictures of the structures within the upper abdomen. To prepare, eat a fat-free dinner the night before and do not eat or drink anything (including water) for 8 to 12 hours before your appointment. This prevents gas build-up in your stomach which could block sound waves.",
+    source: "Mayo Clinic Radiology",
+    page: 5,
     vector: [0.81, 0.29, -0.56, 0.48, -0.11, -0.73, 0.88, 0.15]
   },
   {
     id: 6,
-    category: "Prescriptions",
-    title: "Prescription Refill Requests",
-    content: "Prescription refills require 48 business hours to process. Requests should be submitted directly through the Patient Portal under the 'Prescriptions' tab or requested by having your pharmacy send an electronic refill request to our office. Refills cannot be approved during weekends or holidays, so please request them in advance.",
-    source: "Pharmacy Liaison Guidelines",
-    page: 22,
+    category: "Tests & Procedures",
+    title: "Fasting Blood Test Guidelines",
+    content: "For fasting blood tests (such as lipid panels, glucose tests, or basic metabolic panels), do not eat or drink anything except water for 8 to 12 hours before your appointment. Avoid chewing gum, smoking, and strenuous exercise. Continue taking your prescription medications with water unless specifically instructed otherwise by your doctor.",
+    source: "Mayo Clinic Laboratory Medicine",
+    page: 11,
     vector: [-0.22, 0.51, 0.64, 0.39, 0.72, -0.15, -0.48, -0.33]
   },
   {
     id: 7,
-    category: "Preparation",
-    title: "Ultrasound Preparation Instructions",
-    content: "Preparation for an ultrasound depends on the type. For abdominal ultrasounds, eat a fat-free dinner the night before and do not eat or drink for 8 hours prior. For pelvic or obstetric ultrasounds, you must drink 32 ounces of water 1 hour before the exam and do not empty your bladder; a full bladder is required for proper imaging.",
-    source: "Clinical Prep Guide 2026",
-    page: 6,
+    category: "Diseases & Conditions",
+    title: "Asthma and Bronchospasms",
+    content: "Asthma is a condition in which your airways narrow and swell and may produce extra mucus. This can make breathing difficult and trigger coughing, a whistling sound (wheezing) when you breathe out, and shortness of breath. For some people, asthma is a minor nuisance. For others, it can be a major problem that interferes with daily activities and may lead to a life-threatening asthma attack.",
+    source: "Mayo Clinic Pulmonology",
+    page: 34,
     vector: [0.29, -0.58, 0.73, -0.12, -0.44, 0.81, 0.25, -0.38]
   },
   {
     id: 8,
-    category: "Appointments",
-    title: "New Patient Registration Requirements",
-    content: "New patients should arrive 15 minutes before their scheduled appointment time to complete registration. Please bring a government-issued photo ID, your insurance card, and any relevant medical records or current medication bottles. Registration forms can also be downloaded and filled out online via our website prior to arrival.",
-    source: "Clinic Policy Handbook",
-    page: 1,
+    category: "Policy & Billing",
+    title: "Insurance Coverage and Billing",
+    content: "We accept major insurance providers including Blue Cross Blue Shield, Aetna, Cigna, UnitedHealthcare, and Medicare. Patients are responsible for paying any co-pay or unmet deductibles at the time of check-in. Cancellations made less than 24 hours in advance will incur a $50 late fee, which is not covered by insurance.",
+    source: "Clinic Billing & Admin Manual",
+    page: 3,
     vector: [-0.59, 0.25, 0.44, -0.71, 0.38, 0.08, -0.63, 0.67]
   }
 ];
@@ -198,7 +228,7 @@ class MedicalSearchEngine {
 
     // Sort descending and filter those with score > 0
     return results
-      .filter(item => item.score > 0)
+      .filter(item => item.score > 0.01)
       .sort((a, b) => b.score - a.score)
       .slice(0, k);
   }

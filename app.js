@@ -1,92 +1,110 @@
 /* =================================================================
-   app.js - UI Controller & RAG Graph Animation Engine
+   app.js - UI Controller, Role Portal & RAG Graph Animation Engine
    ================================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // States
-  let currentRole = "invigilator"; // Default to invigilator so they see the full power first
-  let activeTab = "assistant";
+  // ===============================================================
+  // 1. Initial State & LocalStorage Setup
+  // ===============================================================
+  let currentUser = null; // Stores currently logged-in user object {name, role}
+  let activeTab = "home";
   let activeCodeFile = "agent.py";
+  let activeLabSubtab = "visualizer";
 
-  // Cache Elements
-  const rolePatientBtn = document.getElementById("role-patient");
-  const roleInvigilatorBtn = document.getElementById("role-invigilator");
-  const tabLinks = document.querySelectorAll(".tab-link");
-  const tabPanels = document.querySelectorAll(".tab-panel");
+  // Persistent user lists & appointment lists
+  if (!localStorage.getItem("REGISTERED_PATIENTS")) {
+    localStorage.setItem("REGISTERED_PATIENTS", JSON.stringify([]));
+  }
+  if (!localStorage.getItem("CLINIC_APPOINTMENTS")) {
+    localStorage.setItem("CLINIC_APPOINTMENTS", JSON.stringify(INITIAL_APPOINTMENTS));
+  }
+
+  // Cache Core UI Elements
+  const headerAuthActions = document.getElementById("header-auth-actions");
+  const userProfileBadge = document.getElementById("user-profile-badge");
+  const profileRole = document.getElementById("profile-role");
+  const profileName = document.getElementById("profile-name");
+  const logoutBtn = document.getElementById("logout-btn");
   
-  // Chat elements
+  const headerBtnLogin = document.getElementById("header-btn-login");
+  const headerBtnBook = document.getElementById("header-btn-book");
+  const heroBtnRequest = document.getElementById("hero-btn-request");
+  
+  const navHome = document.getElementById("nav-home");
+  const navHealthLibrary = document.getElementById("nav-health-library");
+  const navChatbot = document.getElementById("nav-chatbot");
+  const navDeveloperLab = document.getElementById("nav-developer-lab");
+  
+  const tabPanels = document.querySelectorAll(".tab-panel");
+  const navLinks = document.querySelectorAll(".nav-link");
+  
+  // Dashboard panels
+  const heroBanner = document.getElementById("hero-banner");
+  const promoSection = document.getElementById("innovations");
+  const patientDashboard = document.getElementById("patient-dashboard");
+  const doctorDashboard = document.getElementById("doctor-dashboard");
+  const developerWelcomeDashboard = document.getElementById("developer-welcome-dashboard");
+  
+  const dashPatientName = document.getElementById("dash-patient-name");
+  const dashDoctorName = document.getElementById("dash-doctor-name");
+  
+  // Auth Modal Elements
+  const authModal = document.getElementById("auth-modal");
+  const authModalClose = document.getElementById("auth-modal-close");
+  const modalTabNewPatient = document.getElementById("modal-tab-new-patient");
+  const modalTabRetPatient = document.getElementById("modal-tab-ret-patient");
+  const modalTabDoctor = document.getElementById("modal-tab-doctor");
+  const modalTabDev = document.getElementById("modal-tab-dev");
+  const authForms = document.querySelectorAll(".auth-form");
+  const modalTabBtns = document.querySelectorAll(".modal-tab-btn");
+  
+  // Form elements
+  const formNewPatient = document.getElementById("form-new-patient");
+  const formRetPatient = document.getElementById("form-ret-patient");
+  const formDoctor = document.getElementById("form-doctor");
+  const formDev = document.getElementById("form-dev");
+  const appointmentForm = document.getElementById("appointment-form");
+  
+  // Table bodies
+  const patientAppointmentsTbody = document.getElementById("patient-appointments-tbody");
+  const doctorAppointmentsTbody = document.getElementById("doctor-appointments-tbody");
+  
+  // Health Library Elements
+  const dbSearchInput = document.getElementById("db-search-input");
+  const dbSearchBtn = document.getElementById("db-search-btn");
+  const dbGrid = document.getElementById("db-grid");
+
+  // Chat Elements
   const chatMessages = document.getElementById("chat-messages");
   const chatInput = document.getElementById("chat-input");
   const sendBtn = document.getElementById("send-btn");
   const suggestionPills = document.querySelectorAll(".faq-pill");
   const chatStatusBadge = document.getElementById("chat-status-badge");
-  
-  // Trace log elements
   const traceLogs = document.getElementById("trace-logs");
+
+  // Developer Lab layout toggles
+  const labTabBtns = document.querySelectorAll(".lab-tab-btn");
+  const labSubpanels = document.querySelectorAll(".lab-subpanel");
+  const openVisualizerFromDash = document.getElementById("open-visualizer-from-dash");
+  const openCodeFromDash = document.getElementById("open-code-from-dash");
   
-  // DB tab elements
-  const dbSearchInput = document.getElementById("db-search-input");
-  const dbSearchBtn = document.getElementById("db-search-btn");
-  const dbGrid = document.getElementById("db-grid");
-  
-  // Code tab elements
+  // Code Viewer Elements
   const fileTabs = document.querySelectorAll(".file-tab");
   const fileNameDisplay = document.getElementById("file-name-display");
   const codeDisplay = document.getElementById("code-display");
   const copyBtn = document.getElementById("copy-btn");
 
-  // ===============================================================
-  // 1. Role Toggle & Access Control
-  // ===============================================================
-  function setRole(role) {
-    currentRole = role;
-    
-    if (role === "patient") {
-      rolePatientBtn.classList.add("active");
-      roleInvigilatorBtn.classList.remove("active");
-      
-      // Gray out advanced tabs in navigation
-      document.getElementById("tab-link-visualizer").classList.add("restricted");
-      document.getElementById("tab-link-database").classList.add("restricted");
-      document.getElementById("tab-link-code").classList.add("restricted");
-      
-      // If we are currently on a restricted tab, go back to assistant
-      if (activeTab === "visualizer" || activeTab === "database" || activeTab === "code") {
-        switchTab("assistant");
-      }
-      
-      addSystemLog("System switched to Patient View. Developer panels and visualizer hidden.");
-    } else {
-      roleInvigilatorBtn.classList.add("active");
-      rolePatientBtn.classList.remove("active");
-      
-      // Restore advanced tabs
-      document.getElementById("tab-link-visualizer").classList.remove("restricted");
-      document.getElementById("tab-link-database").classList.remove("restricted");
-      document.getElementById("tab-link-code").classList.remove("restricted");
-      
-      addSystemLog("System switched to Owner/Invigilator View. Developer panels and visualizer unlocked.");
-    }
-  }
-
-  rolePatientBtn.addEventListener("click", () => setRole("patient"));
-  roleInvigilatorBtn.addEventListener("click", () => setRole("invigilator"));
+  // Logo home click
+  document.getElementById("logo-home").addEventListener("click", () => switchTab("home"));
 
   // ===============================================================
-  // 2. Tab Switcher
+  // 2. Tab Navigation & Portal Swapping
   // ===============================================================
   function switchTab(tabName) {
-    // Check if restricted in patient mode
-    if (currentRole === "patient" && (tabName === "visualizer" || tabName === "database" || tabName === "code")) {
-      // Auto upgrade role to show developer features
-      alertToast("Restricted Area: Toggling to Owner/Invigilator mode to view project details, database, and code.");
-      setRole("invigilator");
-    }
-
     activeTab = tabName;
     
-    // Update Tab Links Active State
-    tabLinks.forEach(link => {
+    // Manage header navigation links
+    navLinks.forEach(link => {
       if (link.dataset.tab === tabName) {
         link.classList.add("active");
       } else {
@@ -94,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Show/Hide Panels
+    // Toggle panels
     tabPanels.forEach(panel => {
       if (panel.id === `${tabName}-panel`) {
         panel.classList.add("active");
@@ -103,56 +121,425 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Special renders when entering tabs
-    if (tabName === "database") {
-      renderDatabaseCards();
-    } else if (tabName === "code") {
+    // Special handlers when entering specific tabs
+    if (tabName === "health-library") {
+      renderHealthLibrary();
+    } else if (tabName === "developer-lab") {
       loadCodeFile(activeCodeFile);
     }
+    
+    // Auto-scroll to top of main view
+    document.querySelector("main").scrollTop = 0;
   }
 
-
-  tabLinks.forEach(link => {
+  navLinks.forEach(link => {
     link.addEventListener("click", () => switchTab(link.dataset.tab));
   });
 
-  // Custom alert toast utility
-  function alertToast(msg) {
-    const toast = document.createElement("div");
-    toast.style.position = "fixed";
-    toast.style.bottom = "20px";
-    toast.style.right = "20px";
-    toast.style.background = "rgba(13, 148, 136, 0.9)";
-    toast.style.color = "white";
-    toast.style.padding = "0.75rem 1.5rem";
-    toast.style.borderRadius = "8px";
-    toast.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
-    toast.style.zIndex = "1000";
-    toast.style.fontFamily = "Outfit, sans-serif";
-    toast.style.fontSize = "0.9rem";
-    toast.style.backdropFilter = "blur(8px)";
-    toast.style.border = "1px solid rgba(255,255,255,0.2)";
-    toast.style.animation = "slideInUp 0.3s forwards";
-    toast.innerText = msg;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      toast.style.animation = "fadeIn 0.3s reverse forwards";
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+  // Developer sub-navigation tabs
+  labTabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      labTabBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      const subtab = btn.dataset.subtab;
+      activeLabSubtab = subtab;
+      
+      labSubpanels.forEach(panel => {
+        if (panel.id === `lab-${subtab}-subpanel`) {
+          panel.classList.add("active");
+        } else {
+          panel.classList.remove("active");
+        }
+      });
+    });
+  });
+
+  // Dash shortcuts for developer
+  if (openVisualizerFromDash) {
+    openVisualizerFromDash.addEventListener("click", () => {
+      switchTab("developer-lab");
+      document.querySelector('[data-subtab="visualizer"]').click();
+    });
+  }
+  if (openCodeFromDash) {
+    openCodeFromDash.addEventListener("click", () => {
+      switchTab("developer-lab");
+      document.querySelector('[data-subtab="code"]').click();
+    });
   }
 
   // ===============================================================
-  // 3. Vector Database Tab Operations
+  // 3. Authentication & Sessions
   // ===============================================================
-  function renderDatabaseCards(searchResults = []) {
+  function openAuth(activeSubForm = "new-patient") {
+    authModal.classList.add("active");
+    // Activate specified sub-form
+    modalTabBtns.forEach(btn => {
+      if (btn.id === `modal-tab-${activeSubForm}`) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+
+    let targetFormId = "form-new-patient";
+    if (activeSubForm === "ret-patient") targetFormId = "form-ret-patient";
+    else if (activeSubForm === "doctor") targetFormId = "form-doctor";
+    else if (activeSubForm === "dev") targetFormId = "form-dev";
+
+    authForms.forEach(form => {
+      if (form.id === targetFormId) {
+        form.classList.add("active");
+      } else {
+        form.classList.remove("active");
+      }
+    });
+  }
+
+  function closeAuth() {
+    authModal.classList.remove("active");
+    // Clear inputs
+    formNewPatient.reset();
+    formRetPatient.reset();
+    formDoctor.reset();
+    formDev.reset();
+  }
+
+  headerBtnLogin.addEventListener("click", () => openAuth("ret-patient"));
+  headerBtnBook.addEventListener("click", () => {
+    if (currentUser && currentUser.role === "patient") {
+      switchTab("home");
+      document.getElementById("booking-doctor").focus();
+    } else {
+      openAuth("ret-patient");
+    }
+  });
+  heroBtnRequest.addEventListener("click", () => {
+    if (currentUser && currentUser.role === "patient") {
+      switchTab("home");
+      document.getElementById("booking-doctor").focus();
+    } else {
+      openAuth("ret-patient");
+    }
+  });
+  authModalClose.addEventListener("click", closeAuth);
+
+  // Tabs toggle inside auth modal
+  modalTabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      modalTabBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      const formType = btn.id.replace("modal-tab-", "");
+      let targetFormId = "form-new-patient";
+      if (formType === "ret") targetFormId = "form-ret-patient";
+      else if (formType === "doctor") targetFormId = "form-doctor";
+      else if (formType === "dev") targetFormId = "form-dev";
+
+      authForms.forEach(form => {
+        if (form.id === targetFormId) {
+          form.classList.add("active");
+        } else {
+          form.classList.remove("active");
+        }
+      });
+    });
+  });
+
+  // Login handler
+  function handleLoginSuccess(user) {
+    currentUser = user;
+    closeAuth();
+    
+    // Toggle header UI state
+    headerAuthActions.classList.add("hidden");
+    userProfileBadge.classList.remove("hidden");
+    profileName.innerText = user.name;
+    
+    let displayRole = "Patient";
+    if (user.role === "doctor") displayRole = "Physician";
+    else if (user.role === "developer") displayRole = "Developer";
+    profileRole.innerText = displayRole;
+
+    // Reveal developer lab link if Developer
+    if (user.role === "developer") {
+      navDeveloperLab.classList.remove("hidden");
+    } else {
+      navDeveloperLab.classList.add("hidden");
+    }
+
+    // Refresh dashboards views on Home Tab
+    renderPortalDashboard();
+    switchTab("home");
+    alertToast(`Successfully logged in as ${user.name}`);
+  }
+
+  // New patient registration
+  formNewPatient.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("reg-name").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+
+    if (!name || !email || !password) return;
+
+    // Fetch existing registered patients
+    const patients = JSON.parse(localStorage.getItem("REGISTERED_PATIENTS"));
+    
+    // Check if patient already exists
+    if (patients.find(p => p.name.toLowerCase() === name.toLowerCase()) || MOCK_USERS.find(u => u.name.toLowerCase() === name.toLowerCase() && u.role === "patient")) {
+      alert("Name is already taken. Please log in as returning patient or select a different name.");
+      return;
+    }
+
+    const newPatient = {
+      id: Date.now(),
+      name: name,
+      email: email,
+      password: password,
+      role: "patient"
+    };
+
+    patients.push(newPatient);
+    localStorage.setItem("REGISTERED_PATIENTS", JSON.stringify(patients));
+
+    handleLoginSuccess(newPatient);
+  });
+
+  // Returning Patient Login
+  formRetPatient.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("pat-login-name").value.trim();
+    const password = document.getElementById("pat-login-pwd").value.trim();
+
+    // Check pre-coded users first
+    let matchedUser = MOCK_USERS.find(
+      u => u.name.toLowerCase() === name.toLowerCase() && u.password === password && u.role === "patient"
+    );
+
+    // If not found, check registered list
+    if (!matchedUser) {
+      const registered = JSON.parse(localStorage.getItem("REGISTERED_PATIENTS"));
+      matchedUser = registered.find(
+        p => p.name.toLowerCase() === name.toLowerCase() && p.password === password
+      );
+    }
+
+    if (matchedUser) {
+      handleLoginSuccess({ name: matchedUser.name, role: "patient" });
+    } else {
+      alert("Invalid Patient Credentials! For a sample patient, log in as Akshay with password Messi.");
+    }
+  });
+
+  // Doctor Login
+  formDoctor.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("doc-login-name").value.trim();
+    const password = document.getElementById("doc-login-pwd").value.trim();
+
+    const matchedUser = MOCK_USERS.find(
+      u => u.name.toLowerCase() === name.toLowerCase() && u.password === password && u.role === "doctor"
+    );
+
+    if (matchedUser) {
+      handleLoginSuccess({ name: matchedUser.name, role: "doctor" });
+    } else {
+      alert("Invalid Doctor Credentials! Sample: name: sooraj, password: mister11 OR name: juwel, password: mister7");
+    }
+  });
+
+  // Developer Login
+  formDev.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("dev-login-name").value.trim();
+    const password = document.getElementById("dev-login-pwd").value.trim();
+
+    const matchedUser = MOCK_USERS.find(
+      u => u.name.toLowerCase() === name.toLowerCase() && u.password === password && u.role === "developer"
+    );
+
+    if (matchedUser) {
+      handleLoginSuccess({ name: matchedUser.name, role: "developer" });
+    } else {
+      alert("Invalid Developer Credentials! Sample: name: charles babbage, password: computer");
+    }
+  });
+
+  // Logout handler
+  logoutBtn.addEventListener("click", () => {
+    currentUser = null;
+    headerAuthActions.classList.remove("hidden");
+    userProfileBadge.classList.add("hidden");
+    navDeveloperLab.classList.add("hidden");
+    
+    // Restore home page sections
+    heroBanner.classList.remove("hidden");
+    promoSection.classList.remove("hidden");
+    
+    // Hide all dashboards
+    patientDashboard.classList.add("hidden");
+    doctorDashboard.classList.add("hidden");
+    developerWelcomeDashboard.classList.add("hidden");
+    
+    switchTab("home");
+    alertToast("Logged out successfully.");
+  });
+
+  // ===============================================================
+  // 4. Portal Dashboard Renderers (Home Tab Subviews)
+  // ===============================================================
+  function renderPortalDashboard() {
+    // Hide standard promo blocks if logged in
+    if (currentUser) {
+      heroBanner.classList.add("hidden");
+      promoSection.classList.add("hidden");
+      
+      patientDashboard.classList.add("hidden");
+      doctorDashboard.classList.add("hidden");
+      developerWelcomeDashboard.classList.add("hidden");
+      
+      if (currentUser.role === "patient") {
+        patientDashboard.classList.remove("hidden");
+        dashPatientName.innerText = currentUser.name;
+        renderPatientAppointments();
+      } else if (currentUser.role === "doctor") {
+        doctorDashboard.classList.remove("hidden");
+        dashDoctorName.innerText = `Dr. ${currentUser.name.charAt(0).toUpperCase() + currentUser.name.slice(1)}`;
+        renderDoctorAppointments();
+      } else if (currentUser.role === "developer") {
+        developerWelcomeDashboard.classList.remove("hidden");
+      }
+    } else {
+      heroBanner.classList.remove("hidden");
+      promoSection.classList.remove("hidden");
+      patientDashboard.classList.add("hidden");
+      doctorDashboard.classList.add("hidden");
+      developerWelcomeDashboard.classList.add("hidden");
+    }
+  }
+
+  // Patient appointment submission
+  appointmentForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role !== "patient") return;
+
+    const docSelect = document.getElementById("booking-doctor");
+    const doctorVal = docSelect.value;
+    const doctorName = docSelect.options[docSelect.selectedIndex].text;
+    const dateVal = document.getElementById("booking-date").value;
+    const timeVal = document.getElementById("booking-time").value;
+    const reasonVal = document.getElementById("booking-reason").value.trim();
+
+    if (!doctorVal || !dateVal || !timeVal || !reasonVal) return;
+
+    const appointments = JSON.parse(localStorage.getItem("CLINIC_APPOINTMENTS"));
+    const newAppointment = {
+      id: 200 + appointments.length,
+      patientName: currentUser.name,
+      doctorName: doctorVal, // e.g. 'sooraj' or 'juwel'
+      date: dateVal,
+      time: timeVal,
+      reason: reasonVal,
+      status: "Confirmed" // Auto confirm for simulated convenience
+    };
+
+    appointments.push(newAppointment);
+    localStorage.setItem("CLINIC_APPOINTMENTS", JSON.stringify(appointments));
+
+    // Reset Form
+    appointmentForm.reset();
+    renderPatientAppointments();
+    alertToast("Appointment requested and confirmed successfully!");
+  });
+
+  // Render appointments booked by the patient
+  function renderPatientAppointments() {
+    patientAppointmentsTbody.innerHTML = "";
+    const appointments = JSON.parse(localStorage.getItem("CLINIC_APPOINTMENTS"));
+    const myBookings = appointments.filter(
+      app => app.patientName.toLowerCase() === currentUser.name.toLowerCase()
+    );
+
+    if (myBookings.length === 0) {
+      patientAppointmentsTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No appointments booked yet.</td></tr>`;
+      return;
+    }
+
+    myBookings.forEach(booking => {
+      const row = document.createElement("tr");
+      const docNameReadable = booking.doctorName === "sooraj" ? "Dr. Sooraj (Cardiology)" : "Dr. Juwel (Pediatrics)";
+      
+      row.innerHTML = `
+        <td>#${booking.id}</td>
+        <td>${docNameReadable}</td>
+        <td>${booking.date}</td>
+        <td>${booking.time}</td>
+        <td title="${booking.reason}">${booking.reason.length > 30 ? booking.reason.slice(0, 30) + "..." : booking.reason}</td>
+        <td><span class="status-badge confirmed">${booking.status}</span></td>
+      `;
+      patientAppointmentsTbody.appendChild(row);
+    });
+  }
+
+  // Render appointments for the logged-in doctor
+  function renderDoctorAppointments() {
+    doctorAppointmentsTbody.innerHTML = "";
+    const appointments = JSON.parse(localStorage.getItem("CLINIC_APPOINTMENTS"));
+    
+    // Filter appointments for currently logged-in doctor name
+    const myPatients = appointments.filter(
+      app => app.doctorName.toLowerCase() === currentUser.name.toLowerCase()
+    );
+
+    if (myPatients.length === 0) {
+      doctorAppointmentsTbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No consultations scheduled.</td></tr>`;
+      return;
+    }
+
+    myPatients.forEach(booking => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>#${booking.id}</td>
+        <td><strong>${booking.patientName}</strong></td>
+        <td>Dr. ${booking.doctorName.charAt(0).toUpperCase() + booking.doctorName.slice(1)}</td>
+        <td>${booking.date}</td>
+        <td>${booking.time}</td>
+        <td title="${booking.reason}">${booking.reason}</td>
+        <td>
+          <span class="status-badge ${booking.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending'}">${booking.status}</span>
+          <button class="table-action-btn delete-appt-btn" data-id="${booking.id}" style="margin-left: 0.5rem;" title="Cancel appointment">Cancel</button>
+        </td>
+      `;
+      
+      // Wire delete appt button
+      row.querySelector(".delete-appt-btn").addEventListener("click", () => {
+        cancelAppointment(booking.id);
+      });
+
+      doctorAppointmentsTbody.appendChild(row);
+    });
+  }
+
+  // Doctor canceling appointment
+  function cancelAppointment(id) {
+    let appointments = JSON.parse(localStorage.getItem("CLINIC_APPOINTMENTS"));
+    appointments = appointments.filter(app => app.id !== id);
+    localStorage.setItem("CLINIC_APPOINTMENTS", JSON.stringify(appointments));
+    renderDoctorAppointments();
+    alertToast("Appointment cancelled successfully.");
+  }
+
+  // ===============================================================
+  // 5. Health Library Search & Renderer
+  // ===============================================================
+  function renderHealthLibrary(results = []) {
     dbGrid.innerHTML = "";
     
-    // If no search results are provided, display all cards with 0 score
-    const hasSearch = searchResults.length > 0;
+    const hasSearch = results.length > 0;
     const cardsToDisplay = hasSearch 
-      ? searchResults 
+      ? results 
       : MEDICAL_FAQ_DATABASE.map(doc => ({ ...doc, score: 0 }));
 
     cardsToDisplay.forEach(doc => {
@@ -180,111 +567,49 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${doc.content}</p>
         </div>
         <div class="db-card-vector">
-          <span class="vector-label">Embedding Vector (pseudo 8d float):</span>
+          <span class="vector-label">FAISS Embedded Vector (8d pseudo):</span>
           <div class="vector-sparkline">
             ${sparklineHtml}
           </div>
         </div>
         <div class="db-card-score">
           <span class="score-num">${hasSearch ? doc.score.toFixed(3) : "0.000"}</span>
-          <span class="score-lbl">Cosine Sim</span>
+          <span class="score-lbl">Similarity</span>
         </div>
       `;
       dbGrid.appendChild(card);
     });
   }
 
-  // Run Cosine Similarity search from DB search bar
-  function runDbSearch() {
+  // Health Library search triggered
+  function runLibrarySearch() {
     const query = dbSearchInput.value.trim();
     if (!query) {
-      renderDatabaseCards();
+      renderHealthLibrary();
       return;
     }
-    const results = searchEngine.search(query, 8); // search all
-    renderDatabaseCards(results);
+    const results = searchEngine.search(query, 8); // search all matches
+    renderHealthLibrary(results);
   }
 
-  dbSearchBtn.addEventListener("click", runDbSearch);
+  dbSearchBtn.addEventListener("click", runLibrarySearch);
   dbSearchInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") runDbSearch();
+    if (e.key === "Enter") runLibrarySearch();
   });
 
   // ===============================================================
-  // 4. Code Viewer Tab Operations
-  // ===============================================================
-  function loadCodeFile(fileName) {
-    activeCodeFile = fileName;
-    
-    // Update active tab styles in Sidebar
-    fileTabs.forEach(tab => {
-      if (tab.dataset.file === fileName) {
-        tab.classList.add("active");
-      } else {
-        tab.classList.remove("active");
-      }
-    });
-
-    fileNameDisplay.innerText = fileName;
-    
-    // Clean escape code rendering
-    const code = PYTHON_CODE_TEMPLATES[fileName];
-    
-    // Quick syntax highlighting (rough client-side replacement for colors)
-    let highlightedCode = escapeHtml(code)
-      .replace(/(# .*)/g, '<span style="color: #64748b; font-style: italic;">$1</span>')
-      .replace(/\b(def|class|import|from|return|if|elif|else|while|try|except|lambda|in|is|and|or|not|with|as)\b/g, '<span style="color: #f43f5e; font-weight: 500;">$1</span>')
-      .replace(/\b(StateGraph|END|ChatGroq|FAISS|HuggingFaceEmbeddings|BaseModel|Field|Document|MedicalChatState)\b/g, '<span style="color: #a5b4fc; font-weight: 500;">$1</span>')
-      .replace(/(["'].*?["'])/g, '<span style="color: #34d399;">$1</span>')
-      .replace(/\b(print|ask_assistant|invoke|set_entry_point|add_node|add_edge|add_conditional_edges|compile|similarity_search_with_score|from_documents|save_local|load_local)\b/g, '<span style="color: #38bdf8;">$1</span>');
-
-    codeDisplay.innerHTML = highlightedCode;
-    
-    // Reset copy button state
-    copyBtn.innerText = "Copy Code";
-    copyBtn.classList.remove("copied");
-  }
-
-  function escapeHtml(text) {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  fileTabs.forEach(tab => {
-    tab.addEventListener("click", () => loadCodeFile(tab.dataset.file));
-  });
-
-  // Copy Code to Clipboard
-  copyBtn.addEventListener("click", () => {
-    const rawCode = PYTHON_CODE_TEMPLATES[activeCodeFile];
-    navigator.clipboard.writeText(rawCode).then(() => {
-      copyBtn.innerText = "✓ Copied!";
-      copyBtn.classList.add("copied");
-      setTimeout(() => {
-        copyBtn.innerText = "Copy Code";
-        copyBtn.classList.remove("copied");
-      }, 2500);
-    }).catch(err => {
-      console.error("Failed to copy text: ", err);
-    });
-  });
-
-  // ===============================================================
-  // 5. Chat & LangGraph RAG Simulation Engine
+  // 6. AI Assistant & LangGraph RAG Simulator
   // ===============================================================
   function addMessage(sender, text) {
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const msgElement = document.createElement("div");
     msgElement.className = `message ${sender}`;
     
-    // Format text lines nicely
     const formattedText = text.replace(/\n/g, "<br>");
     
     msgElement.innerHTML = `
       <div class="message-bubble">${formattedText}</div>
-      <span class="msg-meta">${sender === 'user' ? 'Patient' : 'MediGraph Agent'} • ${timeString}</span>
+      <span class="msg-meta">${sender === 'user' ? 'Patient' : 'AI Assistant'} • ${timeString}</span>
     `;
     
     chatMessages.appendChild(msgElement);
@@ -344,14 +669,13 @@ document.addEventListener("DOMContentLoaded", () => {
       addSystemLog("--- Starting LangGraph StateGraph Execution ---", "system");
       addSystemLog(`[state] Initial State query: "${query}"`, "system");
       
-      // Update Chat status badge
       chatStatusBadge.innerText = "Status: Starting Agent Graph...";
-      chatStatusBadge.style.color = "var(--color-teal)";
+      chatStatusBadge.style.color = "var(--mayo-blue)";
 
       // 1. START NODE
       setNodeState("start", "active");
       addSystemLog("Entering Node: __start__", "node");
-      await delay(400);
+      await delay(450);
       setNodeState("start", "completed");
       setEdgeState("start-lang", "active");
       await delay(200);
@@ -362,7 +686,6 @@ document.addEventListener("DOMContentLoaded", () => {
       chatStatusBadge.innerText = "Status: Detecting Language...";
       addSystemLog("Entering Node: detect_language", "node");
       await delay(600);
-      // Simulate langdetect
       addSystemLog("[lang] Input query language detected: English (en)", "system");
       setNodeState("langdetect", "completed");
       setEdgeState("lang-plan", "active");
@@ -372,7 +695,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setEdgeState("lang-plan", "inactive");
       setNodeState("planner", "active");
       chatStatusBadge.innerText = "Status: Routing Query...";
-      chatStatusBadge.style.color = "var(--color-indigo)";
+      chatStatusBadge.style.color = "var(--mayo-blue)";
       addSystemLog("Entering Node: planner", "node");
       await delay(700);
 
@@ -395,30 +718,29 @@ document.addEventListener("DOMContentLoaded", () => {
         // 4. RETRIEVER NODE
         setEdgeState("plan-retrieve", "inactive");
         setNodeState("retriever", "active");
-        chatStatusBadge.innerText = "Status: Querying Vector Database...";
+        chatStatusBadge.innerText = "Status: Querying FAISS Database...";
         chatStatusBadge.style.color = "var(--color-emerald)";
         addSystemLog("Entering Node: retriever", "node");
         await delay(800);
         
-        // List retrieved documents in trace log
-        results.forEach((doc, idx) => {
-          addSystemLog(`[retriever] FAISS score: ${doc.score.toFixed(3)} | Doc: "${doc.title}" (Page ${doc.page})`, "db-hit");
+        results.forEach((doc) => {
+          addSystemLog(`[retriever] FAISS score: ${doc.score.toFixed(3)} | Doc: "${doc.title}"`, "db-hit");
         });
         
         setNodeState("retriever", "completed");
         setEdgeState("retrieve-answer", "active");
         await delay(200);
         
-        // 5. ANSWERER NODE (with RAG Context)
+        // 5. ANSWERER NODE (RAG Context)
         setEdgeState("retrieve-answer", "inactive");
         setNodeState("answerer", "active");
         chatStatusBadge.innerText = "Status: Synthesizing RAG Response...";
-        chatStatusBadge.style.color = "var(--color-teal)";
+        chatStatusBadge.style.color = "var(--mayo-light-blue)";
         addSystemLog("Entering Node: answerer (RAG mode)", "node");
         await delay(900);
         
         const topDoc = results[0];
-        finalAnswer = `According to our clinical records (${topDoc.source}, page ${topDoc.page}):\n\n${topDoc.content}\n\nIs there anything else I can assist you with regarding this matter?`;
+        finalAnswer = `According to our medical library records (${topDoc.source}):\n\n${topDoc.content}\n\nIs there anything else I can help you with regarding this condition?`;
         
         setNodeState("answerer", "completed");
         setEdgeState("answer-end", "active");
@@ -432,11 +754,10 @@ document.addEventListener("DOMContentLoaded", () => {
         setEdgeState("plan-direct", "inactive");
         setNodeState("answerer", "active");
         chatStatusBadge.innerText = "Status: Generating Response...";
-        chatStatusBadge.style.color = "var(--color-teal)";
+        chatStatusBadge.style.color = "var(--mayo-light-blue)";
         addSystemLog("Entering Node: answerer (Direct mode)", "node");
         await delay(800);
         
-        // Synthesize direct general answer
         finalAnswer = getConversationalResponse(query);
         
         setNodeState("answerer", "completed");
@@ -468,19 +789,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function getConversationalResponse(query) {
     const q = query.toLowerCase();
     if (q.includes("hello") || q.includes("hi") || q.includes("hey")) {
-      return "Hello! I am your clinical RAG assistant. I can answer questions about fasting, appointment bookings, cancellation policies, billing, and general symptoms. How can I help you today?";
+      return "Hello! I am your personal Mayo Clinic clinical assistant. I can answer questions about common medical conditions (such as Hypertension or Diabetes), symptoms (such as fever), prep guidelines, or help you schedule a consultation with our doctors. How can I help you today?";
     } else if (q.includes("thank") || q.includes("appreciate")) {
       return "You're very welcome! Let me know if you have any other questions. Have a healthy day!";
     } else if (q.includes("bye") || q.includes("quit") || q.includes("exit")) {
-      return "Goodbye! Thank you for contacting our clinic. Take care!";
+      return "Goodbye! Thank you for contacting Mayo Clinic. Take care!";
     } else if (q.includes("who are you") || q.includes("what is your name")) {
-      return "I am MediGraph, a clinical assistant powered by LangGraph, Groq, and a FAISS knowledge base index.";
+      return "I am the Mayo Clinic AI assistant, built to guide patients through clinical FAQs, disease library lookups, and appointment redirections.";
     } else {
       return "I do not have specific clinical documents matching your query in my local database, but I can help you direct this query to a doctor. Please contact our main receptionist desk at (555) 0199 for scheduling or further medical advice.";
     }
   }
 
-  // Delay helper
   function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -490,15 +810,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = chatInput.value.trim();
     if (!text) return;
     
-    // Disable inputs during RAG query running
     chatInput.value = "";
     chatInput.disabled = true;
     sendBtn.disabled = true;
     suggestionPills.forEach(p => p.style.pointerEvents = "none");
 
     addMessage("user", text);
+
+    // CHECK FOR APPOINTMENT BOOKING TRIGGER
+    const isBookingRequest = /book|appointment|schedule|doctor|consultation/i.test(text);
+
+    if (isBookingRequest) {
+      chatStatusBadge.innerText = "Status: Redirecting to booking flow...";
+      chatStatusBadge.style.color = "var(--mayo-light-blue)";
+      await delay(1000);
+      
+      addMessage("bot", "Certainly! I am redirecting you to our appointment scheduling system on the Home page. Please fill out the booking form there.");
+      await delay(1200);
+
+      // Re-enable chat inputs
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
+      suggestionPills.forEach(p => p.style.pointerEvents = "auto");
+
+      // SWITCH TO HOME TAB
+      switchTab("home");
+      
+      // If logged in, scroll and focus booking form
+      if (currentUser && currentUser.role === "patient") {
+        document.getElementById("booking-doctor").focus();
+        document.getElementById("booking-doctor").scrollIntoView({ behavior: "smooth" });
+      } else {
+        // If guest, open Patient Returning login by default
+        openAuth("ret-patient");
+      }
+      return;
+    }
     
-    // Run LangGraph animation and retrieve response
+    // Otherwise run LangGraph animation and retrieve standard FAQ response
     const botAnswer = await runLangGraphSimulation(text);
     
     addMessage("bot", botAnswer);
@@ -524,10 +873,94 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ===============================================================
-  // 6. Initialize App State
+  // 7. Developer Code Viewer Operations
   // ===============================================================
-  setRole("invigilator"); // Unlock everything initially so developer checks work out-of-the-box
-  switchTab("assistant");
-  addSystemLog("MediGraph RAG System initialized.", "system");
-  addSystemLog("LangGraph visualizer loaded successfully. Waiting for patient query...", "system");
+  function loadCodeFile(fileName) {
+    activeCodeFile = fileName;
+    
+    // Update active tab styles in Sidebar
+    fileTabs.forEach(tab => {
+      if (tab.dataset.file === fileName) {
+        tab.classList.add("active");
+      } else {
+        tab.classList.remove("active");
+      }
+    });
+
+    fileNameDisplay.innerText = fileName;
+    const code = PYTHON_CODE_TEMPLATES[fileName];
+    
+    // Syntax highlighting replacements
+    let highlightedCode = escapeHtml(code)
+      .replace(/(# .*)/g, '<span style="color: #64748b; font-style: italic;">$1</span>')
+      .replace(/\b(def|class|import|from|return|if|elif|else|while|try|except|lambda|in|is|and|or|not|with|as)\b/g, '<span style="color: #f43f5e; font-weight: 500;">$1</span>')
+      .replace(/\b(StateGraph|END|ChatGroq|FAISS|HuggingFaceEmbeddings|BaseModel|Field|Document|MedicalChatState)\b/g, '<span style="color: #a5b4fc; font-weight: 500;">$1</span>')
+      .replace(/(["'].*?["'])/g, '<span style="color: #34d399;">$1</span>')
+      .replace(/\b(print|ask_assistant|invoke|set_entry_point|add_node|add_edge|add_conditional_edges|compile|similarity_search_with_score|from_documents|save_local|load_local)\b/g, '<span style="color: #38bdf8;">$1</span>');
+
+    codeDisplay.innerHTML = highlightedCode;
+    copyBtn.innerText = "Copy Code";
+    copyBtn.classList.remove("copied");
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  fileTabs.forEach(tab => {
+    tab.addEventListener("click", () => loadCodeFile(tab.dataset.file));
+  });
+
+  // Copy Code to Clipboard
+  copyBtn.addEventListener("click", () => {
+    const rawCode = PYTHON_CODE_TEMPLATES[activeCodeFile];
+    navigator.clipboard.writeText(rawCode).then(() => {
+      copyBtn.innerText = "✓ Copied!";
+      copyBtn.classList.add("copied");
+      setTimeout(() => {
+        copyBtn.innerText = "Copy Code";
+        copyBtn.classList.remove("copied");
+      }, 2500);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
+  });
+
+  // Toast Utility
+  function alertToast(msg) {
+    const toast = document.createElement("div");
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.right = "20px";
+    toast.style.background = "rgba(0, 90, 156, 0.95)";
+    toast.style.color = "white";
+    toast.style.padding = "0.75rem 1.5rem";
+    toast.style.borderRadius = "8px";
+    toast.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+    toast.style.zIndex = "1000";
+    toast.style.fontFamily = "Outfit, sans-serif";
+    toast.style.fontSize = "0.9rem";
+    toast.style.backdropFilter = "blur(8px)";
+    toast.style.border = "1px solid rgba(255,255,255,0.2)";
+    toast.style.animation = "slideInUp 0.3s forwards";
+    toast.innerText = msg;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = "fadeIn 0.3s reverse forwards";
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // ===============================================================
+  // 8. Initialize App State
+  // ===============================================================
+  switchTab("home");
+  renderPortalDashboard();
+  addSystemLog("Mayo Clinic clinical portal initialized.", "system");
+  addSystemLog("LangGraph RAG simulation engine online.", "system");
 });

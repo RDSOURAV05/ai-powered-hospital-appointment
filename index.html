@@ -3,212 +3,236 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediGraph RAG - Clinical Assistant & Code Inspector</title>
-  <meta name="description" content="An interactive LangGraph and FAISS powered Medical Appointment and FAQ Assistant with live graph execution visualization and source code inspector.">
+  <title>Mayo Clinic - Portal & Medical Assistant</title>
+  <meta name="description" content="A clinical portal featuring appointment booking, health library search, AI assistant chat, doctor dashboards, and developer inspection tools.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <!-- =================================================================
-       HEADER SECTION
+       MAYO CLINIC HEADER SECTION
        ================================================================= -->
-  <header>
-    <div class="logo-section">
-      <!-- Stetho/Graph Clinic SVG Logo -->
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-      </svg>
-      <div>
-        <h1>MediGraph RAG</h1>
-        <span class="system-badge">System Status: Active</span>
+  <header class="mayo-header">
+    <div class="header-left">
+      <!-- Mayo Clinic Signature Logo Icon & Wordmark -->
+      <div class="mayo-logo" id="logo-home">
+        <svg class="logo-shield" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <div class="logo-text">
+          <span class="brand-name">MAYO CLINIC</span>
+          <span class="brand-sub">Transforming Care</span>
+        </div>
       </div>
+
+      <!-- Navigation Links -->
+      <nav class="mayo-nav">
+        <button class="nav-link active" data-tab="home" id="nav-home">Home</button>
+        <button class="nav-link" data-tab="health-library" id="nav-health-library">Health Library</button>
+        <button class="nav-link" data-tab="chatbot" id="nav-chatbot">Chatbot (AI Assistant)</button>
+        <!-- Conditional developer tab link -->
+        <button class="nav-link hidden" data-tab="developer-lab" id="nav-developer-lab">Developer Lab</button>
+      </nav>
     </div>
     
-    <div class="controls-section">
-      <!-- Role Switcher Badge -->
-      <div class="role-container" id="role-container">
-        <button class="role-btn" id="role-patient" title="Switch to Patient view">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Patient View
-        </button>
-        <button class="role-btn active" id="role-invigilator" title="Switch to Owner/Invigilator view">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-          Owner / Invigilator
-        </button>
+    <div class="header-right">
+      <!-- User profile info / Logout -->
+      <div class="user-badge-container hidden" id="user-profile-badge">
+        <span class="user-role-label" id="profile-role">Patient</span>
+        <span class="user-name" id="profile-name">Akshay</span>
+        <button class="logout-btn" id="logout-btn">Log Out</button>
       </div>
+
+      <!-- Call to Actions -->
+      <div class="auth-buttons" id="header-auth-actions">
+        <button class="mayo-btn-text" id="header-btn-login">Register/Log in</button>
+        <button class="mayo-btn-primary" id="header-btn-book">Request appointment</button>
+      </div>
+      
+      <!-- Search Icon -->
+      <button class="search-toggle-btn" id="search-nav-btn" title="Search conditions">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
     </div>
   </header>
-
-  <!-- =================================================================
-       TAB NAVIGATION
-       ================================================================= -->
-  <div class="tabs-container">
-    <nav class="nav-tabs">
-      <button class="tab-link active" data-tab="assistant" id="tab-link-assistant">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Assistant Chat
-      </button>
-      <button class="tab-link" data-tab="visualizer" id="tab-link-visualizer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        Graph Visualizer
-      </button>
-      <button class="tab-link" data-tab="database" id="tab-link-database">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
-        Vector Database
-      </button>
-      <button class="tab-link" data-tab="code" id="tab-link-code">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        Python Code
-      </button>
-      <button class="tab-link" data-tab="architecture" id="tab-link-architecture">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-        Architecture
-      </button>
-    </nav>
-  </div>
 
   <!-- =================================================================
        MAIN CONTENT DISPLAY PANELS
        ================================================================= -->
   <main>
     
-    <!-- TAB 1: ASSISTANT PANEL -->
-    <div class="tab-panel active" id="assistant-panel">
-      <div class="chat-container-centered">
-        <!-- Chatbot interface -->
-        <div class="chat-pane">
-          <div class="pane-header">
-            <h2>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Clinical Reception Assistant
-            </h2>
-            <span id="chat-status-badge" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; transition: color 0.3s;">Status: Ready</span>
+    <!-- 1. HOME PANEL -->
+    <div class="tab-panel active" id="home-panel">
+      <!-- Mayo Clinic Hero section -->
+      <section class="hero-section" id="hero-banner">
+        <div class="hero-content">
+          <h1>Transforming your care</h1>
+          <p>World-class clinical expertise, personalized treatment plans, and cutting-edge medical research tailored directly to your health journey.</p>
+          <div class="hero-actions">
+            <button class="mayo-btn-large" id="hero-btn-request">Request appointment</button>
+            <a href="#innovations" class="hero-link">Learn how we drive innovation <span class="arrow-icon">→</span></a>
           </div>
-          
-          <div class="chat-messages" id="chat-messages">
-            <div class="message bot">
-              <div class="message-bubble">
-                Hello! I am your clinical RAG assistant. I can answer questions about fasting requirements, appointments, cancellation policies, insurance coverage, or help you book virtual and physical consultations. How can I help you today?
+        </div>
+      </section>
+
+      <!-- Welcome panel for logged in patients -->
+      <section class="dashboard-section hidden" id="patient-dashboard">
+        <div class="dashboard-header">
+          <h2>Patient Dashboard: Welcome, <span id="dash-patient-name">Akshay</span></h2>
+          <p>Manage your appointments, request physical or virtual consultations, and contact clinical support.</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Book Appointment Form -->
+          <div class="dashboard-card booking-card">
+            <h3>Request New Appointment</h3>
+            <form id="appointment-form" class="mayo-form">
+              <div class="form-group">
+                <label for="booking-doctor">Select Department & Doctor</label>
+                <select id="booking-doctor" required>
+                  <option value="" disabled selected>Choose a physician...</option>
+                  <option value="sooraj">Dr. Sooraj (Cardiology Specialist)</option>
+                  <option value="juwel">Dr. Juwel (Pediatric Care Specialist)</option>
+                </select>
               </div>
-              <span class="msg-meta">MediGraph Agent • Just now</span>
+              <div class="form-group-row">
+                <div class="form-group">
+                  <label for="booking-date">Appointment Date</label>
+                  <input type="date" id="booking-date" required>
+                </div>
+                <div class="form-group">
+                  <label for="booking-time">Preferred Time Slot</label>
+                  <select id="booking-time" required>
+                    <option value="" disabled selected>Choose a time...</option>
+                    <option value="09:00 AM">09:00 AM</option>
+                    <option value="10:30 AM">10:30 AM</option>
+                    <option value="01:00 PM">01:00 PM</option>
+                    <option value="02:30 PM">02:30 PM</option>
+                    <option value="04:00 PM">04:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="booking-reason">Symptoms or Reason for Consultation</label>
+                <textarea id="booking-reason" rows="3" placeholder="Tell us about your symptoms or medical concern..." required></textarea>
+              </div>
+              <button type="submit" class="mayo-btn-primary full-width">Submit Request</button>
+            </form>
+          </div>
+
+          <!-- My Booked Appointments -->
+          <div class="dashboard-card appointments-list-card">
+            <h3>My Booked Appointments</h3>
+            <div class="table-container">
+              <table class="mayo-table">
+                <thead>
+                  <tr>
+                    <th>Appointment ID</th>
+                    <th>Doctor</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="patient-appointments-tbody">
+                  <!-- Filled dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
-          
-          <div class="suggestion-pills">
-            <div class="pill-title">Suggested Clinical Queries:</div>
-            <button class="faq-pill">What are the rules for fasting blood tests?</button>
-            <button class="faq-pill">How do I schedule an appointment for my 5-year-old child?</button>
-            <button class="faq-pill">What happens if I cancel within 24 hours?</button>
-            <button class="faq-pill">Do you accept Aetna and Blue Cross?</button>
+        </div>
+      </section>
+
+      <!-- Welcome panel for doctors -->
+      <section class="dashboard-section hidden" id="doctor-dashboard">
+        <div class="dashboard-header">
+          <h2>Doctor Portal: Welcome, <span id="dash-doctor-name">Dr. Sooraj</span></h2>
+          <p>Review appointments, triage patient concerns, and manage consult logs.</p>
+        </div>
+
+        <div class="dashboard-card full-width">
+          <div class="panel-header-row">
+            <h3>Patient Consult Schedule</h3>
+            <span class="system-badge">Real-Time Schedule Tracker</span>
           </div>
-          
-          <div class="chat-input-bar">
-            <input type="text" id="chat-input" placeholder="Ask a medical appointment or preparation question..." autocomplete="off">
-            <button id="send-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+          <div class="table-container">
+            <table class="mayo-table">
+              <thead>
+                <tr>
+                  <th>Appointment ID</th>
+                  <th>Patient Name</th>
+                  <th>Department / Doctor</th>
+                  <th>Consult Date</th>
+                  <th>Time Slot</th>
+                  <th>Reason / Symptoms</th>
+                  <th>Actions / Status</th>
+                </tr>
+              </thead>
+              <tbody id="doctor-appointments-tbody">
+                <!-- Filled dynamically -->
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- Welcome panel for Developer (CHARLES BABBAGE) -->
+      <section class="dashboard-section hidden" id="developer-welcome-dashboard">
+        <div class="dashboard-header">
+          <h2>Developer Dashboard: Access Granted</h2>
+          <p>Welcome back, Charles Babbage. Developer inspection tools and LangGraph state engines are now fully unlocked.</p>
+        </div>
+        <div class="dashboard-grid">
+          <div class="dashboard-card center-align">
+            <h3>LangGraph State Visualizer</h3>
+            <p>Monitor real-time node executions, condition routing decisions, and console trace streams during RAG searches.</p>
+            <button class="mayo-btn-primary" id="open-visualizer-from-dash">Launch State Visualizer</button>
+          </div>
+          <div class="dashboard-card center-align">
+            <h3>Python Implementation Code</h3>
+            <p>Inspect pre-coded templates for the medical agent system including agent.py, db_setup.py, and requirements.txt.</p>
+            <button class="mayo-btn-secondary" id="open-code-from-dash">Launch Code Inspector</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Standard Promo Grid (similar to Mayo Clinic home page content) -->
+      <section class="promo-section" id="innovations">
+        <h2 class="section-title">Why Choose Mayo Clinic</h2>
+        <div class="promo-grid">
+          <div class="promo-card">
+            <div class="promo-img-placeholder clinical-care"></div>
+            <h4>More experience</h4>
+            <p>Every year, more than a million people from all walks of life come to Mayo Clinic for caring, world-class diagnostics and treatment.</p>
+          </div>
+          <div class="promo-card">
+            <div class="promo-img-placeholder research-lab"></div>
+            <h4>The right answers</h4>
+            <p>Our team-based medical approach means you receive coordinated diagnoses from experts focused entirely on resolving your symptoms.</p>
+          </div>
+          <div class="promo-card">
+            <div class="promo-img-placeholder surgery-robot"></div>
+            <h4>Innovating medical science</h4>
+            <p>We continuously publish research and develop robotic clinical procedures to pioneer treatments for complex medical conditions.</p>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- TAB 1.5: GRAPH VISUALIZER PANEL -->
-    <div class="tab-panel" id="visualizer-panel">
-      <div class="visualizer-grid">
-        
-        <!-- Live RAG Graph Container -->
-        <div class="visualizer-card">
-          <div class="pane-header">
-            <h2>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-              LangGraph State visualizer
-            </h2>
-            <span style="font-size: 0.8rem; color: var(--color-teal); font-weight: 500;">Live Execution Graph</span>
-          </div>
-          
-          <!-- SVG Execution Graph -->
-          <div class="visualizer-container">
-            <svg class="graph-svg" viewBox="0 0 500 350">
-              <defs>
-                <!-- Arrow definition for tracer lines -->
-                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" class="edge-arrow-head"/>
-                </marker>
-                <marker id="arrow-active" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#0d9488"/>
-                </marker>
-              </defs>
-
-              <!-- Node connections (Tracer Edges) -->
-              <path id="edge-start-lang" d="M 250,48 L 250,75" class="graph-edge" marker-end="url(#arrow)" />
-              <path id="edge-lang-plan" d="M 250,116 L 250,140" class="graph-edge" marker-end="url(#arrow)" />
-              <path id="edge-plan-retrieve" d="M 190,175 Q 140,185 140,210" class="graph-edge" marker-end="url(#arrow)" />
-              <path id="edge-plan-direct" d="M 310,175 Q 360,185 360,210" class="graph-edge" marker-end="url(#arrow)" />
-              <path id="edge-retrieve-answer" d="M 210,233 L 285,233" class="graph-edge" marker-end="url(#arrow)" />
-              <path id="edge-answer-end" d="M 360,251 Q 360,290 268,295" class="graph-edge" marker-end="url(#arrow)" />
-
-              <!-- Nodes -->
-              <!-- 1. Start Node -->
-              <g id="node-start" class="graph-node">
-                <circle cx="250" cy="30" r="18" />
-                <text x="250" y="34" text-anchor="middle">Start</text>
-              </g>
-
-              <!-- 2. Detect Language Node -->
-              <g id="node-langdetect" class="graph-node">
-                <rect x="175" y="80" width="150" height="36" rx="8" />
-                <text x="250" y="102" text-anchor="middle">detect_language</text>
-              </g>
-
-              <!-- 3. Planner Node -->
-              <g id="node-planner" class="graph-node planner-routing">
-                <rect x="175" y="145" width="150" height="40" rx="8" />
-                <text x="250" y="169" text-anchor="middle">planner (router)</text>
-              </g>
-
-              <!-- 4. Retriever Node -->
-              <g id="node-retriever" class="graph-node">
-                <rect x="70" y="215" width="140" height="36" rx="8" />
-                <text x="140" y="237" text-anchor="middle">retriever (FAISS)</text>
-              </g>
-
-              <!-- 5. Answerer Node -->
-              <g id="node-answerer" class="graph-node">
-                <rect x="290" y="215" width="140" height="36" rx="8" />
-                <text x="360" y="237" text-anchor="middle">answerer (LLM)</text>
-              </g>
-
-              <!-- 6. End Node -->
-              <g id="node-end" class="graph-node">
-                <circle cx="250" cy="310" r="18" />
-                <text x="250" y="314" text-anchor="middle">End</text>
-              </g>
-            </svg>
-          </div>
-        </div>
-        
-        <!-- Live console Trace Log -->
-        <div class="trace-pane">
-          <span class="trace-title">Execution Console Trace Log</span>
-          <div class="trace-logs" id="trace-logs">
-            <!-- Logs populated dynamically -->
-          </div>
-        </div>
-        
-      </div>
-    </div>
-    
-    <!-- TAB 2: VECTOR DATABASE PANEL -->
-    <div class="tab-panel" id="database-panel">
+    <!-- 2. HEALTH LIBRARY PANEL -->
+    <div class="tab-panel" id="health-library-panel">
       <div class="db-header-bar">
         <div class="db-title-block">
-          <h2>FAISS Index Vector Database Explorer</h2>
-          <p>This panel shows the medical FAQs indexed in the vector store. Type a query below to test our client-side TF-IDF similarity search and see the exact cosine similarity scores!</p>
+          <h2>Mayo Clinic Health Library</h2>
+          <p>Search medically reviewed diseases, symptoms, and diagnostic tests using keywords. Powered by client-side TF-IDF similarity indexing.</p>
         </div>
         
         <div class="db-search-box">
-          <input type="text" id="db-search-input" placeholder="Type query to test similarity retrieval..." autocomplete="off">
-          <button id="db-search-btn">Run Query</button>
+          <input type="text" id="db-search-input" placeholder="Search diseases, symptoms, or medical tests..." autocomplete="off">
+          <button id="db-search-btn" class="mayo-btn-primary">Search Library</button>
         </div>
       </div>
       
@@ -218,125 +242,270 @@
       </div>
     </div>
     
-    <!-- TAB 3: CODE EXPLORER PANEL -->
-    <div class="tab-panel" id="code-panel">
-      <div class="code-container">
-        
-        <!-- Left: Code Sidebar -->
-        <div class="code-sidebar">
-          <span class="code-sidebar-title">Project Files</span>
-          <button class="file-tab active" data-file="agent.py">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            agent.py
-          </button>
-          <button class="file-tab" data-file="db_setup.py">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            db_setup.py
-          </button>
-          <button class="file-tab" data-file="requirements.txt">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            requirements.txt
-          </button>
-        </div>
-        
-        <!-- Right: Code Viewer -->
-        <div class="code-viewer-pane">
-          <div class="code-header">
-            <span class="file-name-display" id="file-name-display">agent.py</span>
-            <button class="copy-btn" id="copy-btn">Copy Code</button>
-          </div>
-          <div class="code-pre-container">
-            <pre><code id="code-display">
-              <!-- Rendered dynamically -->
-            </code></pre>
-          </div>
-        </div>
-
-      </div>
-    </div>
-    
-    <!-- TAB 4: ARCHITECTURE PANEL -->
-    <div class="tab-panel" id="architecture-panel">
-      <div class="arch-container">
-        <div class="arch-header">
-          <h2>MediGraph RAG Architectural Flow</h2>
-          <p>Understand how queries are routed and answered in a state-graph multi-agent architecture.</p>
-        </div>
-        
-        <!-- Visual Architecture Graph -->
-        <div class="arch-diagram-card">
-          <span class="arch-diagram-title">System Architecture Schematic</span>
-          <svg class="arch-diagram-svg" viewBox="0 0 500 300">
-            <!-- Diagram shapes and paths -->
-            <!-- Planner Block -->
-            <rect x="180" y="80" width="140" height="40" rx="6" class="arch-flow-node highlight" />
-            <text x="250" y="98" text-anchor="middle" class="arch-flow-text">1. Clinical Planner</text>
-            <text x="250" y="112" text-anchor="middle" class="arch-flow-desc">Routes via Llama-3.3</text>
-            
-            <!-- FAISS Block -->
-            <rect x="50" y="170" width="140" height="45" rx="6" class="arch-flow-node" />
-            <text x="120" y="188" text-anchor="middle" class="arch-flow-text">2a. FAISS Retriever</text>
-            <text x="120" y="202" text-anchor="middle" class="arch-flow-desc">Similarity Search</text>
-            
-            <!-- Direct Block -->
-            <rect x="310" y="170" width="140" height="45" rx="6" class="arch-flow-node" />
-            <text x="380" y="188" text-anchor="middle" class="arch-flow-text">2b. Direct Response</text>
-            <text x="380" y="202" text-anchor="middle" class="arch-flow-desc">Greeting / Casual Chat</text>
-            
-            <!-- Synthesizer Block -->
-            <rect x="180" y="245" width="140" height="40" rx="6" class="arch-flow-node highlight" />
-            <text x="250" y="262" text-anchor="middle" class="arch-flow-text">3. Answerer Synthesizer</text>
-            <text x="250" y="276" text-anchor="middle" class="arch-flow-desc">Formats final markdown</text>
-
-            <!-- Lines -->
-            <path d="M 250,30 L 250,80" class="arch-flow-line" marker-end="url(#arrow)" />
-            <text x="255" y="55" fill="var(--text-muted)" font-size="9" font-family="Fira Code">User Query</text>
-
-            <path d="M 180,100 L 120,170" class="arch-flow-line" marker-end="url(#arrow)" />
-            <path d="M 320,100 L 380,170" class="arch-flow-line" marker-end="url(#arrow)" />
-            
-            <path d="M 120,215 L 180,255" class="arch-flow-line" marker-end="url(#arrow)" />
-            <path d="M 380,215 L 320,255" class="arch-flow-line" marker-end="url(#arrow)" />
-          </svg>
-        </div>
-
-        <div class="arch-card-grid">
-          <div class="arch-card">
-            <div class="arch-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            </div>
-            <h3>1. State Graph Loops</h3>
-            <p>Unlike standard linear RAG pipelines, LangGraph permits cyclic execution where agents can revisit planner stages if context is lacking. The graph holds the medical state in memory across steps, ensuring safe transitions.</p>
+    <!-- 3. CHATBOT PANEL -->
+    <div class="tab-panel" id="chatbot-panel">
+      <div class="chat-container-centered">
+        <!-- Chatbot interface -->
+        <div class="chat-pane">
+          <div class="pane-header">
+            <h2>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Mayo Clinic personal AI assistant
+            </h2>
+            <span id="chat-status-badge" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; transition: color 0.3s;">Status: Ready</span>
           </div>
           
-          <div class="arch-card">
-            <div class="arch-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+              <div class="message-bubble">
+                Hello! I am your Mayo Clinic clinical assistant. I can answer questions about common medical conditions (like Hypertension or Diabetes), symptoms (like a High Fever), prep instructions (like blood test fasting or ultrasound guides), or help you schedule a consultation with our doctors. How can I help you today?
+              </div>
+              <span class="msg-meta">AI Assistant • Just now</span>
             </div>
-            <h3>2. Dynamic Query Routing</h3>
-            <p>The system uses a LLM-based router (Llama-3.3) to classify queries. Rather than querying the vector database for greetings or unrelated chat, the router sends them directly to the answer node, saving tokens and response time.</p>
           </div>
           
-          <div class="arch-card">
-            <div class="arch-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11H5M12 17l-7-6 7-6"/></svg>
-            </div>
-            <h3>3. FAISS Vector Database</h3>
-            <p>FAISS (Facebook AI Similarity Search) is loaded as a vector index. Chunks from the medical clinical manuals are embedded into 384-dimensional dense vectors. During search, cosine similarity maps user intent to database rules.</p>
+          <div class="suggestion-pills">
+            <div class="pill-title">Suggested Inquiries:</div>
+            <button class="faq-pill">Tell me about Hypertension</button>
+            <button class="faq-pill">What are the symptoms of Influenza?</button>
+            <button class="faq-pill">Book an Appointment</button>
+            <button class="faq-pill">Fasting guidelines for blood test</button>
           </div>
           
-          <div class="arch-card">
-            <div class="arch-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3>4. Strict Triage Fallbacks</h3>
-            <p>If similarity search finds no document matching a critical medical query above a strict threshold, the answerer is prohibited from hallucinating clinic fees or fasting guides, instead rendering a safe clinic helpline fallback message.</p>
+          <div class="chat-input-bar">
+            <input type="text" id="chat-input" placeholder="Ask a medical query or type 'book appointment'..." autocomplete="off">
+            <button id="send-btn" class="mayo-btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
     </div>
-    
+
+    <!-- 4. DEVELOPER LAB PANEL (LangGraph & Code, unlocked by charles babbage) -->
+    <div class="tab-panel" id="developer-lab-panel">
+      <!-- Layout selector inside lab -->
+      <div class="lab-navigation-row">
+        <h2>Developer Lab & Code Inspector</h2>
+        <div class="lab-tabs">
+          <button class="lab-tab-btn active" data-subtab="visualizer">LangGraph Visualizer</button>
+          <button class="lab-tab-btn" data-subtab="code">Python Backend Code</button>
+        </div>
+      </div>
+
+      <!-- Subtab A: LangGraph State Visualizer -->
+      <div class="lab-subpanel active" id="lab-visualizer-subpanel">
+        <div class="visualizer-grid">
+          <!-- Live RAG Graph Container -->
+          <div class="visualizer-card">
+            <div class="pane-header">
+              <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                LangGraph State Visualizer
+              </h2>
+              <span style="font-size: 0.8rem; color: var(--color-teal); font-weight: 500;">Live Execution Graph</span>
+            </div>
+            
+            <!-- SVG Execution Graph -->
+            <div class="visualizer-container">
+              <svg class="graph-svg" viewBox="0 0 500 350">
+                <defs>
+                  <!-- Arrow definition for tracer lines -->
+                  <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" class="edge-arrow-head"/>
+                  </marker>
+                  <marker id="arrow-active" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#005A9C"/>
+                  </marker>
+                </defs>
+
+                <!-- Node connections (Tracer Edges) -->
+                <path id="edge-start-lang" d="M 250,48 L 250,75" class="graph-edge" marker-end="url(#arrow)" />
+                <path id="edge-lang-plan" d="M 250,116 L 250,140" class="graph-edge" marker-end="url(#arrow)" />
+                <path id="edge-plan-retrieve" d="M 190,175 Q 140,185 140,210" class="graph-edge" marker-end="url(#arrow)" />
+                <path id="edge-plan-direct" d="M 310,175 Q 360,185 360,210" class="graph-edge" marker-end="url(#arrow)" />
+                <path id="edge-retrieve-answer" d="M 210,233 L 285,233" class="graph-edge" marker-end="url(#arrow)" />
+                <path id="edge-answer-end" d="M 360,251 Q 360,290 268,295" class="graph-edge" marker-end="url(#arrow)" />
+
+                <!-- Nodes -->
+                <!-- 1. Start Node -->
+                <g id="node-start" class="graph-node">
+                  <circle cx="250" cy="30" r="18" />
+                  <text x="250" y="34" text-anchor="middle">Start</text>
+                </g>
+
+                <!-- 2. Detect Language Node -->
+                <g id="node-langdetect" class="graph-node">
+                  <rect x="175" y="80" width="150" height="36" rx="8" />
+                  <text x="250" y="102" text-anchor="middle">detect_language</text>
+                </g>
+
+                <!-- 3. Planner Node -->
+                <g id="node-planner" class="graph-node planner-routing">
+                  <rect x="175" y="145" width="150" height="40" rx="8" />
+                  <text x="250" y="169" text-anchor="middle">planner (router)</text>
+                </g>
+
+                <!-- 4. Retriever Node -->
+                <g id="node-retriever" class="graph-node">
+                  <rect x="70" y="215" width="140" height="36" rx="8" />
+                  <text x="140" y="237" text-anchor="middle">retriever (FAISS)</text>
+                </g>
+
+                <!-- 5. Answerer Node -->
+                <g id="node-answerer" class="graph-node">
+                  <rect x="290" y="215" width="140" height="36" rx="8" />
+                  <text x="360" y="237" text-anchor="middle">answerer (LLM)</text>
+                </g>
+
+                <!-- 6. End Node -->
+                <g id="node-end" class="graph-node">
+                  <circle cx="250" cy="310" r="18" />
+                  <text x="250" y="314" text-anchor="middle">End</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Live console Trace Log -->
+          <div class="trace-pane">
+            <span class="trace-title">Execution Console Trace Log</span>
+            <div class="trace-logs" id="trace-logs">
+              <!-- Logs populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab B: Code Explorer Panel -->
+      <div class="lab-subpanel" id="lab-code-subpanel">
+        <div class="code-container">
+          <!-- Left: Code Sidebar -->
+          <div class="code-sidebar">
+            <span class="code-sidebar-title">Project Files</span>
+            <button class="file-tab active" data-file="agent.py">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              agent.py
+            </button>
+            <button class="file-tab" data-file="db_setup.py">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              db_setup.py
+            </button>
+            <button class="file-tab" data-file="requirements.txt">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              requirements.txt
+            </button>
+          </div>
+          
+          <!-- Right: Code Viewer -->
+          <div class="code-viewer-pane">
+            <div class="code-header">
+              <span class="file-name-display" id="file-name-display">agent.py</span>
+              <button class="copy-btn" id="copy-btn">Copy Code</button>
+            </div>
+            <div class="code-pre-container">
+              <pre><code id="code-display">
+                <!-- Rendered dynamically -->
+              </code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
+
+  <!-- =================================================================
+       AUTHENTICATION MODAL / OVERLAY
+       ================================================================= -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-container">
+      <button class="modal-close-btn" id="auth-modal-close" title="Close authentication panel">×</button>
+      
+      <!-- Role Toggle Tabs inside Modal -->
+      <div class="modal-auth-tabs">
+        <button class="modal-tab-btn active" id="modal-tab-new-patient">New Patient</button>
+        <button class="modal-tab-btn" id="modal-tab-ret-patient">Returning Patient</button>
+        <button class="modal-tab-btn" id="modal-tab-doctor">Doctor Login</button>
+        <button class="modal-tab-btn" id="modal-tab-dev">Developer Access</button>
+      </div>
+
+      <div class="modal-body-content">
+        <!-- New Patient Registration Form -->
+        <form class="auth-form active" id="form-new-patient">
+          <h3>Create Patient Account</h3>
+          <p class="form-desc">Register to book online appointments and save your clinical profile.</p>
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="Akshay..." required autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" placeholder="name@example.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="••••••••" required autocomplete="new-password">
+          </div>
+          <div class="form-check-group">
+            <input type="checkbox" id="reg-agree" required>
+            <label for="reg-agree">I consent to the clinical terms of service & data usage policies.</label>
+          </div>
+          <button type="submit" class="mayo-btn-primary full-width">Register Patient</button>
+        </form>
+
+        <!-- Returning Patient Login Form -->
+        <form class="auth-form" id="form-ret-patient">
+          <h3>Patient Portal Log In</h3>
+          <p class="form-desc">Log in with your existing account. (Sample: Name = Akshay, Password = Messi)</p>
+          <div class="form-group">
+            <label for="pat-login-name">Name</label>
+            <input type="text" id="pat-login-name" placeholder="Akshay" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="pat-login-pwd">Password</label>
+            <input type="password" id="pat-login-pwd" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="mayo-btn-primary full-width">Log In as Patient</button>
+        </form>
+
+        <!-- Doctor Login Form -->
+        <form class="auth-form" id="form-doctor">
+          <h3>Doctor Portal Log In</h3>
+          <p class="form-desc">Enter physician credentials. (Sample: sooraj / mister11 or juwel / mister7)</p>
+          <div class="form-group">
+            <label for="doc-login-name">Physician Name</label>
+            <input type="text" id="doc-login-name" placeholder="sooraj" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="doc-login-pwd">Access Password</label>
+            <input type="password" id="doc-login-pwd" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="mayo-btn-primary full-width">Log In as Physician</button>
+        </form>
+
+        <!-- Developer Login Form -->
+        <form class="auth-form" id="form-dev">
+          <h3>Developer lab Log In</h3>
+          <p class="form-desc">Credentials: charles babbage / computer</p>
+          <div class="form-group">
+            <label for="dev-login-name">Developer User ID</label>
+            <input type="text" id="dev-login-name" placeholder="charles babbage" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="dev-login-pwd">Developer Key</label>
+            <input type="password" id="dev-login-pwd" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="mayo-btn-primary full-width">Unlock Developer Lab</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
 
   <!-- =================================================================
        SCRIPTS IMPORT
