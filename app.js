@@ -513,9 +513,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${booking.time}</td>
         <td title="${booking.reason}">${booking.reason}</td>
         <td>
-          <span class="status-badge ${booking.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending'}">${booking.status}</span>
+          <span class="status-badge ${booking.status.toLowerCase() === 'confirmed' ? 'confirmed' : (booking.status.toLowerCase() === 'canceled' ? 'canceled' : 'pending')}">${booking.status}</span>
           ${booking.status === 'Pending' ? `<button class="table-action-btn confirm-appt-btn" data-id="${booking.id}" style="background-color: var(--color-emerald); margin-left: 0.5rem;" title="Confirm appointment">Confirm</button>` : ''}
-          <button class="table-action-btn delete-appt-btn" data-id="${booking.id}" style="margin-left: 0.5rem;" title="Cancel appointment">Cancel</button>
+          ${booking.status !== 'Canceled' ? `<button class="table-action-btn delete-appt-btn" data-id="${booking.id}" style="margin-left: 0.5rem;" title="Cancel appointment">Cancel</button>` : ''}
         </td>
       `;
       
@@ -527,10 +527,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
       
-      // Wire delete appt button
-      row.querySelector(".delete-appt-btn").addEventListener("click", () => {
-        cancelAppointment(booking.id);
-      });
+      // Wire delete appt button if present
+      const deleteBtn = row.querySelector(".delete-appt-btn");
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", () => {
+          cancelAppointment(booking.id);
+        });
+      }
 
       doctorAppointmentsTbody.appendChild(row);
     });
@@ -551,7 +554,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Doctor canceling appointment
   function cancelAppointment(id) {
     let appointments = JSON.parse(localStorage.getItem("CLINIC_APPOINTMENTS"));
-    appointments = appointments.filter(app => app.id !== id);
+    const appt = appointments.find(app => app.id === id);
+    if (appt) {
+      appt.status = "Canceled";
+    }
     localStorage.setItem("CLINIC_APPOINTMENTS", JSON.stringify(appointments));
     renderDoctorAppointments();
     alertToast("Appointment cancelled successfully.");
