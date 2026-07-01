@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.getElementById("logout-btn");
   
   const headerBtnLogin = document.getElementById("header-btn-login");
+  const headerBtnDoctorLogin = document.getElementById("header-btn-doctor-login");
   const headerBtnBook = document.getElementById("header-btn-book");
   const heroBtnRequest = document.getElementById("hero-btn-request");
   
@@ -53,10 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const authModalClose = document.getElementById("auth-modal-close");
   const modalTabNewPatient = document.getElementById("modal-tab-new-patient");
   const modalTabRetPatient = document.getElementById("modal-tab-ret-patient");
-  const modalTabDoctor = document.getElementById("modal-tab-doctor");
   const modalTabDev = document.getElementById("modal-tab-dev");
   const authForms = document.querySelectorAll(".auth-form");
   const modalTabBtns = document.querySelectorAll(".modal-tab-btn");
+  
+  // Doctor Auth Modal Elements
+  const doctorAuthModal = document.getElementById("doctor-auth-modal");
+  const doctorModalClose = document.getElementById("doctor-modal-close");
   
   // Form elements
   const formNewPatient = document.getElementById("form-new-patient");
@@ -185,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let targetFormId = "form-new-patient";
     if (activeSubForm === "ret-patient") targetFormId = "form-ret-patient";
-    else if (activeSubForm === "doctor") targetFormId = "form-doctor";
     else if (activeSubForm === "dev") targetFormId = "form-dev";
 
     authForms.forEach(form => {
@@ -202,17 +205,26 @@ document.addEventListener("DOMContentLoaded", () => {
     // Clear inputs
     formNewPatient.reset();
     formRetPatient.reset();
-    formDoctor.reset();
     formDev.reset();
   }
 
+  function openDoctorAuth() {
+    doctorAuthModal.classList.add("active");
+  }
+
+  function closeDoctorAuth() {
+    doctorAuthModal.classList.remove("active");
+    formDoctor.reset();
+  }
+
   headerBtnLogin.addEventListener("click", () => openAuth("ret-patient"));
+  headerBtnDoctorLogin.addEventListener("click", openDoctorAuth);
   headerBtnBook.addEventListener("click", () => {
     if (currentUser && currentUser.role === "patient") {
       switchTab("home");
       document.getElementById("booking-doctor").focus();
     } else {
-      openAuth("ret-patient");
+      openAuth("new-patient");
     }
   });
   heroBtnRequest.addEventListener("click", () => {
@@ -220,10 +232,11 @@ document.addEventListener("DOMContentLoaded", () => {
       switchTab("home");
       document.getElementById("booking-doctor").focus();
     } else {
-      openAuth("ret-patient");
+      openAuth("new-patient");
     }
   });
   authModalClose.addEventListener("click", closeAuth);
+  doctorModalClose.addEventListener("click", closeDoctorAuth);
 
   // Tabs toggle inside auth modal
   modalTabBtns.forEach(btn => {
@@ -234,7 +247,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const formType = btn.id.replace("modal-tab-", "");
       let targetFormId = "form-new-patient";
       if (formType === "ret" || formType === "ret-patient") targetFormId = "form-ret-patient";
-      else if (formType === "doctor") targetFormId = "form-doctor";
       else if (formType === "dev") targetFormId = "form-dev";
 
       authForms.forEach(form => {
@@ -251,6 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleLoginSuccess(user) {
     currentUser = user;
     closeAuth();
+    closeDoctorAuth();
     
     // Toggle header UI state
     headerAuthActions.classList.add("hidden");
@@ -873,8 +886,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("booking-doctor").focus();
         document.getElementById("booking-doctor").scrollIntoView({ behavior: "smooth" });
       } else {
-        // If guest, open Patient Returning login by default
-        openAuth("ret-patient");
+        // If guest, open Patient Registration tab by default
+        openAuth("new-patient");
       }
       return;
     }

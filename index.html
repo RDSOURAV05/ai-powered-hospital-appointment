@@ -44,6 +44,7 @@
       <!-- Call to Actions -->
       <div class="auth-buttons" id="header-auth-actions">
         <button class="mayo-btn-text" id="header-btn-login">Register/Log in</button>
+        <button class="mayo-btn-text" id="header-btn-doctor-login">Doctor Login</button>
         <button class="mayo-btn-primary" id="header-btn-book">Request appointment</button>
       </div>
       
@@ -430,7 +431,6 @@
       <div class="modal-auth-tabs">
         <button class="modal-tab-btn active" id="modal-tab-new-patient">New Patient</button>
         <button class="modal-tab-btn" id="modal-tab-ret-patient">Returning Patient</button>
-        <button class="modal-tab-btn" id="modal-tab-doctor">Doctor Login</button>
         <button class="modal-tab-btn" id="modal-tab-dev">Developer Access</button>
       </div>
 
@@ -473,20 +473,7 @@
           <button type="submit" class="mayo-btn-primary full-width">Log In as Patient</button>
         </form>
 
-        <!-- Doctor Login Form -->
-        <form class="auth-form" id="form-doctor">
-          <h3>Doctor Portal Log In</h3>
-          <p class="form-desc">Enter physician credentials. (Sample: sooraj / mister11 or juwel / mister7)</p>
-          <div class="form-group">
-            <label for="doc-login-name">Physician Name</label>
-            <input type="text" id="doc-login-name" placeholder="sooraj" required autocomplete="username">
-          </div>
-          <div class="form-group">
-            <label for="doc-login-pwd">Access Password</label>
-            <input type="password" id="doc-login-pwd" placeholder="••••••••" required autocomplete="current-password">
-          </div>
-          <button type="submit" class="mayo-btn-primary full-width">Log In as Physician</button>
-        </form>
+
 
         <!-- Developer Login Form -->
         <form class="auth-form" id="form-dev">
@@ -504,6 +491,31 @@
         </form>
       </div>
 
+    </div>
+  </div>
+
+  <!-- =================================================================
+       DOCTOR AUTHENTICATION MODAL / OVERLAY
+       ================================================================= -->
+  <div class="modal-overlay" id="doctor-auth-modal">
+    <div class="modal-container">
+      <button class="modal-close-btn" id="doctor-modal-close" title="Close doctor authentication panel">×</button>
+      <div class="modal-body-content" style="padding-top: 1rem;">
+        <!-- Doctor Login Form -->
+        <form class="auth-form active" id="form-doctor">
+          <h3>Doctor Portal Log In</h3>
+          <p class="form-desc">Enter physician credentials. (Sample: sooraj / mister11 or juwel / mister7)</p>
+          <div class="form-group">
+            <label for="doc-login-name">Physician Name</label>
+            <input type="text" id="doc-login-name" placeholder="sooraj" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="doc-login-pwd">Access Password</label>
+            <input type="password" id="doc-login-pwd" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="mayo-btn-primary full-width">Log In as Physician</button>
+        </form>
+      </div>
     </div>
   </div>
 

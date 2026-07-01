@@ -1383,7 +1383,7 @@ main {
 
 .modal-auth-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   background: rgba(7, 11, 20, 0.5);
   padding: 4px;
