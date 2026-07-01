@@ -646,7 +646,7 @@ main {
   background: rgba(234, 179, 8, 0.15);
   color: #eab308;
 }
-.status-badge.canceled {
+.status-badge.cancelled {
   background: rgba(244, 63, 94, 0.15);
   color: var(--color-rose);
 }
